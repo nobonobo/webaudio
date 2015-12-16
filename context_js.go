@@ -31,4 +31,5 @@ func New() (*AudioContext, error) {
 }
 
 func (c *AudioContext) Close() {
+	c.Object.Call("close")
 }
