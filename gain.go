@@ -33,14 +33,12 @@ func (g *GainNode) Connect(i Input) error {
 	return nil
 }
 
-func (g *GainNode) output(buffs ...[]float32) {
-	g.InputImpl.pull(buffs...)
-	buff := buffs[0]
-	if len(g._gains) != len(buff) {
-		g._gains = make([]float32, len(buff))
+func (g *GainNode) output() []float32 {
+	gains := g.gain.output()
+	buffs := make([]float32, 1)
+	g.InputImpl.pull(buffs)
+	for ch := range buffs {
+		buffs[ch] *= gains[ch%len(gains)]
 	}
-	g.gain.pull(g._gains)
-	for idx := range buff {
-		buff[idx] *= g._gains[idx]
-	}
+	return buffs
 }

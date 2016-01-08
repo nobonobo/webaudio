@@ -50,7 +50,7 @@ func New() (*AudioContext, error) {
 	c.destination = newAudioDestinationNode(c)
 	c.closed = make(chan struct{})
 	c.done = make(chan struct{})
-	qt := 50 * time.Millisecond
+	qt := 100 * time.Millisecond
 	qc := 8
 	dt := time.Duration(int(qt) / qc)
 	sz := int(c.sampleRate*float32(qt)/float32(time.Second)) / qc
@@ -82,10 +82,10 @@ func (c *AudioContext) proc(sz, qc int, dt time.Duration) {
 		bs := al.GenBuffers(n)
 		for _, b := range bs {
 			buf := make([]byte, sz*CZ)
-			buff := make([]float32, sz)
-			c.destination.pull(buff)
 			for idx := 0; idx < sz; idx++ {
-				v := int16(float32(32767) * buff[idx])
+				buff := make([]float32, 1)
+				c.destination.pull(buff)
+				v := int16(float32(32767) * buff[0])
 				binary.LittleEndian.PutUint16(buf[idx*CZ:(idx+1)*CZ], uint16(v))
 			}
 			b.BufferData(Fmt, buf, c.sampleRateInt)

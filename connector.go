@@ -8,15 +8,15 @@ import (
 )
 
 type Output interface {
-	output(...[]float32)
+	NumberOfOutputs() int
+	output() []float32
 	connectTo(Input) error
 	Disconnect()
-	NumberOfOutputs() int
 }
 
 type Input interface {
 	NumberOfInputs() int
-	pull(...[]float32)
+	pull([]float32)
 	connectFrom(Output)
 	disconnectFrom(Output)
 }
@@ -33,7 +33,7 @@ type InputImpl struct {
 	sources        map[Output]struct{}
 }
 
-func (o *OutputImpl) output(buffs ...[]float32) {
+func (o *OutputImpl) output() []float32 {
 	panic("must override output method")
 }
 
@@ -77,25 +77,13 @@ func (i *InputImpl) disconnectFrom(o Output) {
 	delete(i.sources, o)
 }
 
-func (i *InputImpl) pull(buffs ...[]float32) {
+func (i *InputImpl) pull(values []float32) {
 	i.RLock()
 	defer i.RUnlock()
 	for o := range i.sources {
-		bs := make([][]float32, len(buffs))
-		for ch, buff := range buffs {
-			bs[ch] = make([]float32, len(buff))
-		}
-		o.output(bs...)
-		for ch, buff := range buffs {
-			for idx, v := range bs[ch] {
-				buff[idx] += v
-				if buff[idx] > 1.0 {
-					buff[idx] = 1.0
-				}
-				if buff[idx] < -1.0 {
-					buff[idx] = -1.0
-				}
-			}
+		outputs := o.output()
+		for ch := range outputs {
+			values[ch] += outputs[ch%len(outputs)]
 		}
 	}
 }

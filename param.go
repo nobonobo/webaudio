@@ -24,17 +24,22 @@ func (p *AudioParam) DefaultValue() float32 {
 }
 
 func (p *AudioParam) Value() float32 {
+	p.RLock()
+	defer p.RUnlock()
 	return p.value
 }
 
 func (p *AudioParam) SetValue(v float32) {
+	p.Lock()
+	defer p.Unlock()
 	p.value = v
 }
 
-func (p *AudioParam) pull(buffs ...[]float32) {
-	buff := buffs[0]
-	for idx := range buff {
-		buff[idx] = p.value
-	}
-	p.InputImpl.pull(buffs...)
+func (p *AudioParam) output() []float32 {
+	p.Lock()
+	defer p.Unlock()
+	buff := []float32{p.value}
+	p.InputImpl.pull(buff)
+	p.value = buff[0]
+	return buff
 }

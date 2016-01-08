@@ -19,8 +19,6 @@ type OscillatorNode struct {
 	waveType    string
 	frequency   *AudioParam
 	detune      *AudioParam
-	_freqs      []float32
-	_detunes    []float32
 	phase       float32
 	phaseDetune float32
 	started     bool
@@ -156,36 +154,26 @@ func (o *OscillatorNode) Connect(i Input) error {
 	return nil
 }
 
-func (o *OscillatorNode) output(buffs ...[]float32) {
+func (o *OscillatorNode) output() []float32 {
 	dt := 1 / o.context.sampleRate
-	buff := buffs[0]
-	if o._freqs == nil || len(o._freqs) != len(buff) {
-		o._freqs = make([]float32, len(buff))
+	freq := o.frequency.output()[0]
+	detune := o.detune.output()[0]
+
+	running, stopped := o.tick(dt)
+	if stopped {
+		o.DispatchEvent(NewEndEvent(o))
 	}
-	o.frequency.pull(o._freqs)
-	if o._detunes == nil || len(o._detunes) != len(buff) {
-		o._detunes = make([]float32, len(buff))
+	if !running {
+		return []float32{0.0}
 	}
-	o.detune.pull(o._detunes)
-	for idx := range buff {
-		running, stopped := o.tick(dt)
-		if stopped {
-			o.DispatchEvent(NewEndEvent(o))
-		}
-		f := o._freqs[idx]
-		d := f + o._detunes[idx]
-		if running {
-			buff[idx] = (o.generator(o.phase) + o.generator(o.phaseDetune)) / 2
-			o.phase += f * dt
-			if o.phase > 1.0 {
-				o.phase -= 1.0
-			}
-			o.phaseDetune += d * dt
-			if o.phaseDetune > 1.0 {
-				o.phaseDetune -= 1.0
-			}
-		} else {
-			buff[idx] = 0.0
-		}
+	value := (o.generator(o.phase) + o.generator(o.phaseDetune)) / 2
+	o.phase += freq * dt
+	if o.phase > 1.0 {
+		o.phase -= 1.0
 	}
+	o.phaseDetune += detune * dt
+	if o.phaseDetune > 1.0 {
+		o.phaseDetune -= 1.0
+	}
+	return []float32{value}
 }

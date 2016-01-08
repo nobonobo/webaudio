@@ -13,7 +13,3 @@ func newAudioDestinationNode(context *AudioContext) *AudioDestinationNode {
 	context.appendNode(o.AudioNode)
 	return o
 }
-
-func (d *AudioDestinationNode) pull(buffs ...[]float32) {
-	d.InputImpl.pull(buffs...)
-}
